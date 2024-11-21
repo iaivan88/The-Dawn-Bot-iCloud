@@ -1,5 +1,7 @@
 import asyncio
 import json
+import random
+
 import names
 
 from datetime import datetime, timezone
@@ -9,6 +11,7 @@ from curl_cffi.requests import AsyncSession
 from models import Account
 from .exceptions.base import APIError, SessionRateLimited, ServerError
 from loader import captcha_solver, config
+from config import settings
 
 
 class DawnExtensionAPI:
@@ -196,7 +199,7 @@ class DawnExtensionAPI:
             "mobile": "",
             "password": self.account_data.password,
             "country": "+91",
-            "referralCode": config.referral_code,
+            "referralCode": random.choice(settings["referral_codes"]),
             "puzzle_id": puzzle_id,
             "ans": answer,
         }

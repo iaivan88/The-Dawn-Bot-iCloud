@@ -17,12 +17,12 @@ REQUIRED_PARAMS_FIELDS = (
     "imap_settings",
     "captcha_module",
     "delay_before_start",
-    "referral_code",
+    "referral_codes",
 )
 
 
 def read_file(
-    file_path: str, check_empty: bool = True, is_yaml: bool = False
+        file_path: str, check_empty: bool = True, is_yaml: bool = False
 ) -> List[str] | Dict:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -84,6 +84,21 @@ def validate_domains(accounts: List[Account], domains: Dict[str, str]) -> List[A
     return accounts
 
 
+def validate_config(config: dict) -> None:
+    required_fields = {
+        # ... other required fields ...
+        "referral_codes",  # Replace 'referral_code' with 'referral_codes'
+    }
+
+    missing_fields = required_fields - set(config.keys())
+    if missing_fields:
+        raise ValueError(f"Missing fields in config file: {', '.join(missing_fields)}")
+
+    # Add validation for referral_codes
+    if not isinstance(config["referral_codes"], list) or not config["referral_codes"]:
+        raise ValueError("referral_codes must be a non-empty list")
+
+
 def load_config() -> Config:
     try:
         reg_accounts = list(get_accounts("register.txt"))
@@ -106,6 +121,8 @@ def load_config() -> Config:
             raise ValueError("2Captcha API key is missing")
         elif config.captcha_module == "anticaptcha" and not config.anti_captcha_api_key:
             raise ValueError("AntiCaptcha API key is missing")
+
+        validate_config(params)
 
         return config
 

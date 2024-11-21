@@ -1,3 +1,4 @@
+from asyncio import timeout
 from datetime import datetime, timedelta
 from typing import Tuple, Any, Optional
 
@@ -10,6 +11,11 @@ from .api import DawnExtensionAPI
 from utils import check_email_for_link, check_if_email_valid
 from database import Accounts
 from .exceptions.base import APIError, SessionRateLimited, CaptchaSolvingFailed
+from config import settings
+
+icloud_imap_server = settings["icloud"]["server"]
+icloud_email = settings["icloud"]["email"]
+icloud_password = settings["icloud"]["password"]
 
 
 class Bot(DawnExtensionAPI):
@@ -64,13 +70,15 @@ class Bot(DawnExtensionAPI):
         await self.clear_account_and_session()
 
         try:
-            confirm_url = await check_email_for_link(
-                imap_server=self.account_data.imap_server,
-                email=self.account_data.email,
-                password=self.account_data.password,
+            timeout(5)
+            email_data = await check_email_for_link(
+                imap_server=icloud_imap_server,
+                email=icloud_email,
+                password=icloud_password,
+                receiver_email=self.account_data.email,
             )
 
-            if confirm_url is None:
+            if email_data is None:
                 logger.error(
                     f"Account: {self.account_data.email} | Confirmation link not found"
                 )
@@ -79,7 +87,7 @@ class Bot(DawnExtensionAPI):
                     data=self.account_data.password,
                     status=False,
                 )
-
+            confirm_url, mailbox, msg_uid = email_data
             logger.success(
                 f"Account: {self.account_data.email} | Link found, confirming registration..."
             )
@@ -88,12 +96,25 @@ class Bot(DawnExtensionAPI):
                 logger.success(
                     f"Account: {self.account_data.email} | Successfully confirmed registration"
                 )
+
+                # Move email to archive after successful confirmation
+                if mailbox.folder.exists("Dawn Archive"):
+                    try:
+                        mailbox.move(msg_uid, "Dawn Archive")
+                        logger.info(f"Account: {self.account_data.email} | Email moved to Dawn Archive")
+                    except Exception as move_error:
+                        logger.error(
+                            f"Account: {self.account_data.email} | Failed to move email to Dawn Archive: {move_error}")
+                else:
+                    logger.warning(f"Account: {self.account_data.email} | Dawn Archive folder does not exist")
+
                 return OperationResult(
                     identifier=self.account_data.email,
                     data=self.account_data.password,
                     status=True,
                 )
 
+            mailbox.logout()
             logger.error(
                 f"Account: {self.account_data.email} | Failed to confirm registration"
             )
@@ -109,15 +130,14 @@ class Bot(DawnExtensionAPI):
             status=False,
         )
 
-
     async def process_registration(self) -> OperationResult:
         task_id = None
 
         try:
             if not await check_if_email_valid(
-                self.account_data.imap_server,
-                self.account_data.email,
-                self.account_data.password,
+                    imap_server=icloud_imap_server,
+                    email=icloud_email,
+                    password=icloud_password,
             ):
                 logger.error(f"Account: {self.account_data.email} | Invalid email")
                 return OperationResult(
@@ -134,13 +154,14 @@ class Bot(DawnExtensionAPI):
                 f"Account: {self.account_data.email} | Successfully registered, waiting for email..."
             )
 
-            confirm_url = await check_email_for_link(
-                imap_server=self.account_data.imap_server,
-                email=self.account_data.email,
-                password=self.account_data.password,
+            email_data = await check_email_for_link(
+                imap_server=icloud_imap_server,
+                email=icloud_email,
+                password=icloud_password,
+                receiver_email=self.account_data.email,
             )
 
-            if confirm_url is None:
+            if email_data is None:
                 logger.error(
                     f"Account: {self.account_data.email} | Confirmation link not found"
                 )
@@ -150,20 +171,36 @@ class Bot(DawnExtensionAPI):
                     status=False,
                 )
 
+            confirm_url, mailbox, msg_uid = email_data
             logger.success(
                 f"Account: {self.account_data.email} | Link found, confirming registration..."
             )
+
             response = await self.clear_request(url=confirm_url)
             if response.status_code == 200:
                 logger.success(
                     f"Account: {self.account_data.email} | Successfully confirmed registration"
                 )
+
+                # Move email to archive after successful confirmation
+                if mailbox.folder.exists("Dawn Archive"):
+                    try:
+                        mailbox.move(msg_uid, "Dawn Archive")
+                        logger.info(f"Account: {self.account_data.email} | Email moved to Dawn Archive")
+                    except Exception as move_error:
+                        logger.error(
+                            f"Account: {self.account_data.email} | Failed to move email to Dawn Archive: {move_error}")
+                else:
+                    logger.warning(f"Account: {self.account_data.email} | Dawn Archive folder does not exist")
+
+                mailbox.logout()
                 return OperationResult(
                     identifier=self.account_data.email,
                     data=self.account_data.password,
                     status=True,
                 )
 
+            mailbox.logout()
             logger.error(
                 f"Account: {self.account_data.email} | Failed to confirm registration"
             )
@@ -387,7 +424,7 @@ class Bot(DawnExtensionAPI):
 
     async def handle_existing_account(self, db_account_data) -> bool | None:
         if db_account_data.sleep_until and await self.handle_sleep(
-            db_account_data.sleep_until
+                db_account_data.sleep_until
         ):
             return False
 

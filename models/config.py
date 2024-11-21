@@ -1,3 +1,4 @@
+import random
 from typing import Literal
 
 from better_proxy import Proxy

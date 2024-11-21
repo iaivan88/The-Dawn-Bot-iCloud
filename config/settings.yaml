@@ -3,21 +3,44 @@
 
 # Core Settings
 # ------------
-threads: 10                    # Number of concurrent threads to run (minimum: 1)
+threads: 2                    # Number of concurrent threads to run (minimum: 1)
 keepalive_interval: 120        # How often to send keepalive signal (in seconds)
-referral_code: "hegbhf"        # Your referral code for the application
+referral_codes:       # Your referral code for the application
+  - "wvbto1fm"
+  - "29a4pyke"
+  - "x4br26fm"
+  - "csudf8pv"
+  - "j3iw92qz"
+  - "bx12w5x4"
+  - "bmh6tru4"
+  - "h8mtdchz"
+  - "ik2tpx8s"
+  - "oj2kzobv"
+  - "804yqgtq"
+
+# iCloud Settings
+# --------------
+icloud:
+  server: "imap.mail.me.com"
+  email: ""
+  password: ""
+  folders_to_search: # Add folders configuration
+    - "Inbox"
+    - "Dawn"
+    - "Junk"
+
 
 # Captcha Settings
 # ---------------
-captcha_module: 2captcha       # Captcha service to use: '2captcha' or 'anticaptcha'
+captcha_module: anticaptcha       # Captcha service to use: '2captcha' or 'anticaptcha'
 two_captcha_api_key: ""        # API key for 2captcha service
 anti_captcha_api_key: ""       # API key for anti-captcha service
 
 # Startup Delay Configuration
 # -------------------------
 delay_before_start:
-  min: 2                       # Minimum delay before starting (seconds)
-  max: 3                       # Maximum delay before starting (seconds)
+  min: 10                       # Minimum delay before starting (seconds)
+  max: 20                       # Maximum delay before starting (seconds)
 
 # Email Provider IMAP Settings
 # --------------------------
@@ -32,3 +55,4 @@ imap_settings:
   gmx.com: imap.gmx.com              # GMX Mail
   gmx.net: imap.gmx.net             # GMX Germany
   gmx.de: imap.gmx.net              # GMX Germany (alternate domain)
+  icloud.com: imap.mail.me.com      # icloud main account
